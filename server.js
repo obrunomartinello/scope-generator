@@ -103,7 +103,7 @@ app.post('/api/generate-scope', async (req, res) => {
       
       // 2. FETCH DETAILS FOR EACH PLACE
       for (const place of places) {
-        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number&key=${googleApiKey}`;
+        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,current_opening_hours,price_level,photos&key=${googleApiKey}`;
         const detailsRes = await axios.get(detailsUrl);
         const details = detailsRes.data.result || {};
 
@@ -114,7 +114,10 @@ app.post('/api/generate-scope', async (req, res) => {
           rating: place.rating || 0,
           reviews: place.user_ratings_total || 0,
           phone: details.formatted_phone_number || null,
-          website: details.website || null
+          website: details.website || null,
+          priceLevel: details.price_level || null,
+          openNow: details.current_opening_hours ? details.current_opening_hours.open_now : null,
+          photoCount: details.photos ? details.photos.length : 0,
         });
       }
     } else {
@@ -154,6 +157,9 @@ app.post('/api/generate-scope', async (req, res) => {
         whatsapp: websiteData.whatsapp || null,
         website: b.website ? b.website.replace(/^https?:\/\//, '').split('/')[0] : null,
         techStack: websiteData.techStack || null,
+        priceLevel: b.priceLevel,
+        openNow: b.openNow,
+        photoCount: b.photoCount,
         hotScore: hotScore,
         links: { yelp: null, facebook: null, thumbtack: null } // We skip scraping socials for speed, focusing on Maps
       };
