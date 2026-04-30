@@ -59,9 +59,9 @@ const ScopeCard = ({ scope }) => {
             {isWarmLead && <AlertTriangle className="h-4 w-4" />}
             {isColdLead && <CheckCircle2 className="h-4 w-4" />}
             
-            {isHotLead ? 'Prioridade 1 (Lead Quente)' : ''}
-            {isWarmLead ? 'Prioridade 2 (Lead Morno)' : ''}
-            {isColdLead ? 'Baixa Prioridade (Estruturado)' : ''}
+            {isHotLead ? '👻 Fantasma (Invisível pro Mundo)' : ''}
+            {isWarmLead ? '🩹 Sobrevivendo por Aparelhos' : ''}
+            {isColdLead ? '😎 O Cara Tá Bem (Estruturado)' : ''}
           </span>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             Score de Dor: {scope.hotScore} pts
@@ -81,7 +81,13 @@ const ScopeCard = ({ scope }) => {
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-400">Telefone Fixo (Google)</p>
-                <p className="font-bold text-slate-800 text-lg">{scope.phone || 'Não encontrado'}</p>
+                {scope.phone ? (
+                  <a href={`https://wa.me/1${scope.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="font-bold text-slate-800 text-lg hover:text-green-600 hover:underline decoration-2 underline-offset-4 transition-colors">
+                    {scope.phone} <span className="text-xs text-slate-400 font-normal ml-1">(Tentar WhatsApp)</span>
+                  </a>
+                ) : (
+                  <p className="font-bold text-slate-800 text-lg">Não encontrado</p>
+                )}
               </div>
             </div>
 
@@ -147,6 +153,15 @@ const ScopeCard = ({ scope }) => {
                  <p className="text-xs text-red-600 font-medium">⚠️ Esta empresa existe no Google Maps, mas não tem um site conectado. O cliente clica e não tem para onde ir.</p>
                </div>
             )}
+
+            <div className="pt-4">
+              <p className="text-xs font-semibold text-slate-400 mb-3">Links & Plataformas</p>
+              <div className="flex flex-wrap gap-2.5">
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(scope.name + ' ' + scope.address)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-800 hover:bg-slate-50 transition-colors text-sm font-bold">
+                  <MapPin className="h-4 w-4" /> Ver no Google Maps
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>

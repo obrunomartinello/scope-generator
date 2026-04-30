@@ -40,8 +40,8 @@ function App() {
         {/* Header / Search Bar - Glassmorphism */}
         <header className="bg-white/60 backdrop-blur-xl border-b border-white/40 p-6 flex flex-col gap-4 sticky top-0 z-10 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gerador de Escopos</h1>
-            <p className="text-sm text-slate-500 font-medium">Prospecting MVP</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Anti-Agência Prospecting 🕵️‍♂️</h1>
+            <p className="text-sm text-slate-500 font-medium">Central de Achados e Perdidos 🛸</p>
           </div>
           
           <form onSubmit={handleSearch} className="flex gap-3 max-w-3xl">
@@ -51,7 +51,7 @@ function App() {
               </div>
               <input
                 type="text"
-                placeholder="Ex: Joe's Cleaning Services"
+                placeholder="Ex: brazilian cleaning"
                 className="block w-full pl-11 pr-4 py-3 bg-white/70 backdrop-blur-md border border-white/60 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-apple-blue/50 focus:border-apple-blue shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] transition-all"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -74,11 +74,11 @@ function App() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="hidden sm:inline">Analisando Leads (pode levar 20s)...</span>
+                  <span className="hidden sm:inline">Analisando (pode levar 20s)...</span>
                   <span className="sm:hidden">Analisando...</span>
                 </>
               ) : (
-                'Gerar Dossiê'
+                '🔍 Caçar Leads Perdidões'
               )}
             </button>
           </form>
