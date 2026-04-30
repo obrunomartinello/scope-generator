@@ -4,10 +4,24 @@ import ScopeCard from './components/ScopeCard';
 import HistorySidebar from './components/HistorySidebar';
 
 function App() {
-  const [query, setQuery] = useState('');
-  const [location, setLocation] = useState('');
+  const [query, setQuery] = useState(() => localStorage.getItem('lastQuery') || '');
+  const [location, setLocation] = useState(() => localStorage.getItem('lastLocation') || '');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentScope, setCurrentScope] = useState(null);
+  const [currentScope, setCurrentScope] = useState(() => {
+    const saved = localStorage.getItem('currentScope');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return null; }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lastQuery', query);
+    localStorage.setItem('lastLocation', location);
+    if (currentScope) {
+      localStorage.setItem('currentScope', JSON.stringify(currentScope));
+    }
+  }, [query, location, currentScope]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -24,6 +38,13 @@ function App() {
       
       const data = await response.json();
       setCurrentScope(data);
+      
+      // Save to local history
+      const savedHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+      const newHistoryItem = { query, location, results: data, type: 'batch_search', time: new Date().toLocaleTimeString() };
+      const newHistory = [newHistoryItem, ...savedHistory].slice(0, 20); // Keep last 20
+      localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+      
     } catch (error) {
       console.error("Failed to fetch scope:", error);
       alert("Erro ao buscar dados da empresa. Verifique sua conexão.");

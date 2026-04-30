@@ -6,18 +6,21 @@ const HistorySidebar = ({ onSelectHistory }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchHistory = () => {
       try {
-        const res = await fetch('/api/history');
-        const data = await res.json();
-        setHistory(data);
+        const localHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        setHistory(localHistory);
       } catch (err) {
-        console.error("Failed to fetch history", err);
+        console.error("Failed to fetch local history", err);
       } finally {
         setIsLoading(false);
       }
     };
     fetchHistory();
+    
+    // Optional: Refresh history periodically or when localStorage changes
+    const interval = setInterval(fetchHistory, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   return (

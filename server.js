@@ -52,12 +52,27 @@ async function scanWebsite(url) {
 app.post('/api/generate-scope', async (req, res) => {
   const { query, location } = req.body;
   
+  // SEO Expansion Engine
+  const expandQuery = (q) => {
+    const lowerQ = q.toLowerCase();
+    if (lowerQ.includes('jardina') || lowerQ.includes('grama')) return 'landscaping OR lawn care OR tree service';
+    if (lowerQ.includes('limpez') || lowerQ.includes('faxina')) return 'house cleaning OR maid service OR residential cleaning';
+    if (lowerQ.includes('constru')) return 'construction OR remodeling OR roofing OR contractor';
+    if (lowerQ.includes('pintur')) return 'painting contractor OR house painter';
+    if (lowerQ.includes('piscina')) return 'pool cleaning OR pool service';
+    if (lowerQ.includes('encanador') || lowerQ.includes('encanamento')) return 'plumber OR plumbing service';
+    if (lowerQ.includes('eletricista') || lowerQ.includes('eletrica')) return 'electrician OR electrical service';
+    return q; // fallback
+  };
+
+  const optimizedQuery = expandQuery(query);
+  
   try {
     const googleApiKey = process.env.VITE_GOOGLE_PLACES_API_KEY;
     let businessesToScan = [];
 
     if (googleApiKey) {
-      const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' in ' + location)}&key=${googleApiKey}`;
+      const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(optimizedQuery + ' in ' + location)}&key=${googleApiKey}`;
       const searchRes = await axios.get(searchUrl);
       const places = searchRes.data.results;
       
@@ -126,11 +141,6 @@ app.post('/api/generate-scope', async (req, res) => {
     if (supabase && finalScopes.length > 0) {
       try {
         await supabase.from('scopes').insert([{
-          company_name: `BUSCA: ${query} in ${location}`,
-          address: location,
-          website: null,
-          email: null,
-          whatsapp: null,
           raw_data: { query, location, results: finalScopes, type: 'batch_search' }
         }]);
       } catch (e) {
