@@ -84,9 +84,9 @@ const ScopeCard = ({ scope }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/10">
         {/* Contact Info */}
-        <div className="bg-white/5 backdrop-blur-md p-8 space-y-6">
+        <div className="bg-slate-900/70 backdrop-blur-xl p-8 space-y-6">
           <h3 className="text-xs font-black text-blue-300 uppercase tracking-widest mb-6">Dados de Contato</h3>
           
           <div className="space-y-5">
@@ -133,7 +133,7 @@ const ScopeCard = ({ scope }) => {
         </div>
 
         {/* Digital Presence */}
-        <div className="bg-white/5 backdrop-blur-md p-8 space-y-6">
+        <div className="bg-slate-900/70 backdrop-blur-xl p-8 space-y-6">
           <h3 className="text-xs font-black text-purple-300 uppercase tracking-widest mb-6">Presença Digital</h3>
           
           <div className="space-y-5">
@@ -187,7 +187,7 @@ const ScopeCard = ({ scope }) => {
       </div>
       
       {/* Diagnóstico Automático Baseado no Playbook */}
-      <div className="p-7 bg-black/40 border-t border-white/10">
+      <div className="p-7 bg-slate-900/90 border-t border-white/10">
         <h3 className="text-xs font-black text-rose-300 uppercase tracking-widest mb-4 flex items-center gap-2 drop-shadow-md">
           <AlertTriangle className="h-4 w-4" /> Inteligência de Abordagem (Playbook)
         </h3>

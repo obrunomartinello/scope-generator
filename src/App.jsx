@@ -38,7 +38,7 @@ function App() {
       <div className="absolute inset-0 bg-slate-950/60 pointer-events-none"></div>
 
       <div className="relative z-10 flex w-full">
-        <HistorySidebar />
+        <HistorySidebar onSelectHistory={setCurrentScope} />
         
         <main className="flex-1 flex flex-col h-screen overflow-hidden">
           {/* Header / Search Bar - Liquid Glass */}

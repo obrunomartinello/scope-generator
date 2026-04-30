@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://pgdydpboryoptefsqxsp.supabase.co';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
-const yelpApiKey = process.env.YELP_API_KEY;
 
 // Original fallback scraper
 async function searchWeb(query) {
@@ -54,7 +53,7 @@ export default async function handler(req, res) {
     if (googleApiKey) {
       const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' in ' + location)}&key=${googleApiKey}`;
       const searchRes = await axios.get(searchUrl);
-      const places = searchRes.data.results.slice(0, 10);
+      const places = searchRes.data.results;
       
       for (const place of places) {
         const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,current_opening_hours,price_level,photos&key=${googleApiKey}`;
@@ -76,9 +75,7 @@ export default async function handler(req, res) {
       }
     } else {
       businessesToScan = [
-        { name: `${query} Experts`, address: location, rating: 4.8, reviews: 112, phone: '+1 (305) 555-0101', website: `https://www.${query.replace(/\s+/g, '').toLowerCase()}experts.com` },
-        { name: `Affordable ${query}`, address: location, rating: 3.5, reviews: 14, phone: null, website: null },
-        { name: `Elite ${query} Services`, address: location, rating: 4.2, reviews: 45, phone: '+1 (305) 555-0103', website: `https://elite${query.replace(/\s+/g, '').toLowerCase()}.wixsite.com/home` }
+        { name: `${query} Experts`, address: location, rating: 4.8, reviews: 112, phone: '+1 (305) 555-0101', website: `https://www.${query.replace(/\s+/g, '').toLowerCase()}experts.com` }
       ];
     }
 
@@ -116,18 +113,29 @@ export default async function handler(req, res) {
       };
       
       finalScopes.push(scope);
-      
-      if (supabase) {
-        await supabase.from('scopes').insert([
-          { company_name: scope.name, address: scope.address, website: scope.website, email: scope.email, whatsapp: scope.whatsapp, raw_data: scope }
-        ]);
-      }
     }
 
     finalScopes.sort((a, b) => b.hotScore - a.hotScore);
 
+    // Save to Supabase History (We save the entire batch search as one entry to not spam the DB)
+    if (supabase && finalScopes.length > 0) {
+      try {
+        await supabase.from('scopes').insert([{
+          company_name: `BUSCA: ${query} in ${location}`,
+          address: location,
+          website: null,
+          email: null,
+          whatsapp: null,
+          raw_data: { query, location, results: finalScopes, type: 'batch_search' }
+        }]);
+      } catch (e) {
+        console.error("Failed to save history to Supabase:", e);
+      }
+    }
+
     res.status(200).json(finalScopes);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Erro ao gerar escopo" });
   }
 }
