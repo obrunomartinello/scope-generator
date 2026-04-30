@@ -1,5 +1,5 @@
-import React from 'react';
-import { Star, Phone, Mail, Globe, MapPin, Building2, MessageCircle, AlertTriangle, CheckCircle2, Flame, Megaphone, Clock, DollarSign, Camera } from 'lucide-react';
+import React, { useState } from 'react';
+import { Star, Phone, Mail, Globe, MapPin, Building2, MessageCircle, AlertTriangle, CheckCircle2, Flame, Megaphone, Clock, DollarSign, Camera, Send, ExternalLink, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -7,7 +7,9 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-const ScopeCard = ({ scope }) => {
+const ScopeCard = ({ scope, onDismiss, isDismissed }) => {
+  const [justCopied, setJustCopied] = useState(false);
+
   if (!scope) return null;
 
   const isGoodRating = scope.rating >= 4.5;
@@ -21,8 +23,46 @@ const ScopeCard = ({ scope }) => {
   const isWarmLead = scope.hotScore >= 20 && scope.hotScore < 50;
   const isColdLead = scope.hotScore < 20;
 
+  const handleSendToSheet = () => {
+    // Build a tab-separated string perfect for pasting into Google Sheets
+    const row = [
+      scope.name,
+      scope.address,
+      scope.phone || '',
+      scope.email || '',
+      scope.website || 'SEM SITE',
+      scope.whatsapp ? 'SIM' : 'NÃO',
+      scope.techStack || '-',
+      scope.rating,
+      scope.reviews,
+      scope.hotScore,
+      isHotLead ? 'Fantasma' : isWarmLead ? 'Sobrevivendo' : 'Estruturado',
+    ].join('\t');
+
+    navigator.clipboard.writeText(row).then(() => {
+      setJustCopied(true);
+      setTimeout(() => setJustCopied(false), 2000);
+      // Mark as dismissed
+      if (onDismiss) onDismiss(scope.id || scope.name);
+    });
+  };
+
   return (
-    <div className="bg-white/5 backdrop-blur-[30px] border border-white/20 rounded-[32px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] text-slate-100 transition-all hover:bg-white/10">
+    <div className={cn(
+      "relative bg-white/5 backdrop-blur-[30px] border border-white/20 rounded-[32px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] text-slate-100 transition-all",
+      isDismissed ? "opacity-40 scale-[0.98]" : "hover:bg-white/10"
+    )}>
+      {/* Dismissed Overlay */}
+      {isDismissed && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-[32px]">
+          <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-2xl px-6 py-4 text-center backdrop-blur-xl">
+            <CheckCircle2 className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
+            <p className="text-emerald-300 font-black text-lg">Enviado pra Planilha ✅</p>
+            <p className="text-slate-400 text-xs mt-1">Este lead já foi processado</p>
+          </div>
+        </div>
+      )}
+
       {/* Header Info */}
       <div className="p-7 border-b border-white/10 flex justify-between items-start">
         <div className="space-y-2">
@@ -62,7 +102,7 @@ const ScopeCard = ({ scope }) => {
           </div>
         </div>
         
-        {/* Priority Badge */}
+        {/* Priority Badge + Action Buttons */}
         <div className="text-right flex flex-col items-end gap-2">
           <span className={cn(
             "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-bold shadow-[0_0_15px_rgba(0,0,0,0.2)] border",
@@ -81,6 +121,25 @@ const ScopeCard = ({ scope }) => {
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-black/20 px-2 py-1 rounded-md">
             Score de Dor: {scope.hotScore} pts
           </span>
+
+          {/* BOTÃO ENVIAR PRA PLANILHA */}
+          {!isDismissed && (
+            <button
+              onClick={handleSendToSheet}
+              className={cn(
+                "mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all",
+                justCopied 
+                  ? "bg-emerald-500/30 border-emerald-500/40 text-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                  : "bg-gradient-to-r from-orange-500/60 to-amber-500/60 border-orange-400/30 text-white hover:brightness-125 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+              )}
+            >
+              {justCopied ? (
+                <><CheckCircle2 className="h-4 w-4" /> Copiado! Cola na planilha</>
+              ) : (
+                <><Send className="h-4 w-4" /> Enviar pra Planilha 📋</>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

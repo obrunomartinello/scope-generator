@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Gauge, ShieldAlert } from 'lucide-react';
+import { Search, Loader2, Gauge, ShieldAlert, EyeOff, Eye } from 'lucide-react';
 import ScopeCard from './components/ScopeCard';
 import HistorySidebar from './components/HistorySidebar';
 
@@ -9,6 +9,10 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchCount, setSearchCount] = useState(() => parseInt(localStorage.getItem('searchCount') || '0'));
   const [dailyQuota, setDailyQuota] = useState(() => parseInt(localStorage.getItem('dailyQuota') || '150'));
+  const [showDismissed, setShowDismissed] = useState(false);
+  const [dismissedLeads, setDismissedLeads] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('dismissedLeads') || '[]'); } catch { return []; }
+  });
   const [currentScope, setCurrentScope] = useState(() => {
     const saved = localStorage.getItem('currentScope');
     if (saved) {
@@ -22,10 +26,15 @@ function App() {
     localStorage.setItem('lastLocation', location);
     localStorage.setItem('searchCount', searchCount);
     localStorage.setItem('dailyQuota', dailyQuota);
+    localStorage.setItem('dismissedLeads', JSON.stringify(dismissedLeads));
     if (currentScope) {
       localStorage.setItem('currentScope', JSON.stringify(currentScope));
     }
-  }, [query, location, currentScope, searchCount, dailyQuota]);
+  }, [query, location, currentScope, searchCount, dailyQuota, dismissedLeads]);
+
+  const handleDismiss = (leadId) => {
+    setDismissedLeads(prev => [...new Set([...prev, leadId])]);
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -50,7 +59,7 @@ function App() {
       // Save to local history
       const savedHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
       const newHistoryItem = { query, location, results: data, type: 'batch_search', time: new Date().toLocaleTimeString() };
-      const newHistory = [newHistoryItem, ...savedHistory].slice(0, 20); // Keep last 20
+      const newHistory = [newHistoryItem, ...savedHistory].slice(0, 20);
       localStorage.setItem('searchHistory', JSON.stringify(newHistory));
       
     } catch (error) {
@@ -60,6 +69,14 @@ function App() {
       setIsLoading(false);
     }
   };
+
+  // Filter leads: active ones first, dismissed at the bottom (or hidden)
+  const activeLeads = currentScope && Array.isArray(currentScope) 
+    ? currentScope.filter(s => !dismissedLeads.includes(s.id || s.name))
+    : [];
+  const processedLeads = currentScope && Array.isArray(currentScope) 
+    ? currentScope.filter(s => dismissedLeads.includes(s.id || s.name))
+    : [];
 
   return (
     <div className="min-h-screen flex text-slate-100 bg-[#0f172a] bg-[url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=2000')] bg-cover bg-center bg-fixed">
@@ -112,7 +129,7 @@ function App() {
                 </div>
                 <input
                   type="text"
-                  placeholder="Ex: brazilian cleaning"
+                  placeholder="Ex: jardinagem, limpeza, construção..."
                   className="block w-full pl-11 pr-4 py-3.5 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] transition-all font-medium"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -152,18 +169,37 @@ function App() {
                 <div className="space-y-8">
                   <div className="flex justify-between items-end px-2">
                     <h2 className="text-xl font-bold text-white drop-shadow-md">
-                      Encontramos {currentScope.length} empresas
+                      {activeLeads.length} empresas novas {processedLeads.length > 0 && <span className="text-sm font-normal text-slate-400">({processedLeads.length} já enviadas)</span>}
                     </h2>
-                    <span className="text-xs text-white/80 bg-white/10 backdrop-blur-2xl px-4 py-2 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/10 font-bold uppercase tracking-wider">
-                      Busca em Lote concluída
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {processedLeads.length > 0 && (
+                        <button onClick={() => setShowDismissed(!showDismissed)} className="text-xs text-white/60 bg-white/5 backdrop-blur-2xl px-4 py-2 rounded-full border border-white/10 font-bold hover:bg-white/10 transition-all flex items-center gap-1.5">
+                          {showDismissed ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          {showDismissed ? 'Esconder Processados' : `Mostrar ${processedLeads.length} Processados`}
+                        </button>
+                      )}
+                      <span className="text-xs text-white/80 bg-white/10 backdrop-blur-2xl px-4 py-2 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/10 font-bold uppercase tracking-wider">
+                        Busca em Lote concluída
+                      </span>
+                    </div>
                   </div>
                   
+                  {/* Active Leads */}
                   <div className="space-y-12">
-                    {currentScope.map((scope, idx) => (
-                      <ScopeCard key={idx} scope={scope} />
+                    {activeLeads.map((scope, idx) => (
+                      <ScopeCard key={scope.id || idx} scope={scope} onDismiss={handleDismiss} isDismissed={false} />
                     ))}
                   </div>
+
+                  {/* Processed Leads (togglable) */}
+                  {showDismissed && processedLeads.length > 0 && (
+                    <div className="space-y-12 mt-8 pt-8 border-t border-white/10">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-2">📋 Leads já enviados para Planilha</h3>
+                      {processedLeads.map((scope, idx) => (
+                        <ScopeCard key={scope.id || idx} scope={scope} onDismiss={handleDismiss} isDismissed={true} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-6 py-20 text-slate-300">
