@@ -97,8 +97,8 @@ const ScopeCard = ({ scope }) => {
               <div>
                 <p className="text-xs font-semibold text-slate-400">Telefone Fixo (Google)</p>
                 {scope.phone ? (
-                  <a href={`https://wa.me/1${scope.phone.replace(/\\D/g, '')}`} target="_blank" rel="noreferrer" className="font-bold text-white text-lg hover:text-green-400 hover:underline decoration-2 underline-offset-4 transition-colors drop-shadow-md">
-                    {scope.phone} <span className="text-xs text-slate-400 font-normal ml-1 border border-white/10 rounded-full px-2 py-0.5 bg-white/5">(Tentar WhatsApp)</span>
+                  <a href={`https://api.whatsapp.com/send/?phone=1${scope.phone.replace(/\D/g, '')}&text&type=phone_number&app_absent=0`} target="_blank" rel="noreferrer" className="font-bold text-white text-lg hover:text-green-400 hover:underline decoration-2 underline-offset-4 transition-colors drop-shadow-md">
+                    {scope.phone} <span className="text-[10px] text-green-300 font-bold ml-1 border border-green-500/20 rounded-full px-2 py-0.5 bg-green-500/10">(Testar WhatsApp)</span>
                   </a>
                 ) : (
                   <p className="font-bold text-slate-500 text-lg">Não encontrado</p>
