@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Phone, Mail, Globe, MapPin, Building2, MessageCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Star, Phone, Mail, Globe, MapPin, Building2, MessageCircle, AlertTriangle, CheckCircle2, Flame } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -13,7 +13,13 @@ const ScopeCard = ({ scope }) => {
   const isGoodRating = scope.rating >= 4.5;
   const isWarningRating = scope.rating >= 4.0 && scope.rating < 4.5;
   const isBadRating = scope.rating < 4.0;
-  const needsBetterSite = scope.techStack === 'Wix' || !scope.website;
+  const noWebsite = !scope.website;
+  const noWhatsapp = !scope.whatsapp;
+  
+  // Prioridade baseada no Score
+  const isHotLead = scope.hotScore >= 50;
+  const isWarmLead = scope.hotScore >= 20 && scope.hotScore < 50;
+  const isColdLead = scope.hotScore < 20;
 
   return (
     <div className="bg-white/70 backdrop-blur-2xl border border-white/60 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -41,16 +47,24 @@ const ScopeCard = ({ scope }) => {
           </div>
         </div>
         
-        {/* Quick Diagnose Badge */}
-        <div className="text-right">
+        {/* Priority Badge */}
+        <div className="text-right flex flex-col items-end gap-2">
           <span className={cn(
             "inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-bold shadow-sm border",
-            needsBetterSite || isBadRating 
-              ? "bg-red-50 border-red-100 text-red-600" 
-              : "bg-emerald-50 border-emerald-100 text-emerald-600"
+            isHotLead ? "bg-red-50 border-red-200 text-red-600" : "",
+            isWarmLead ? "bg-amber-50 border-amber-200 text-amber-600" : "",
+            isColdLead ? "bg-emerald-50 border-emerald-200 text-emerald-600" : ""
           )}>
-            {needsBetterSite || isBadRating ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-            {needsBetterSite || isBadRating ? 'Oportunidade Forte' : 'Empresa Estruturada'}
+            {isHotLead && <Flame className="h-4 w-4" />}
+            {isWarmLead && <AlertTriangle className="h-4 w-4" />}
+            {isColdLead && <CheckCircle2 className="h-4 w-4" />}
+            
+            {isHotLead ? 'Prioridade 1 (Lead Quente)' : ''}
+            {isWarmLead ? 'Prioridade 2 (Lead Morno)' : ''}
+            {isColdLead ? 'Baixa Prioridade (Estruturado)' : ''}
+          </span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Score de Dor: {scope.hotScore} pts
           </span>
         </div>
       </div>
@@ -66,7 +80,7 @@ const ScopeCard = ({ scope }) => {
                 <Phone className="h-5 w-5 text-slate-600" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-slate-400">Telefone Fixo</p>
+                <p className="text-xs font-semibold text-slate-400">Telefone Fixo (Google)</p>
                 <p className="font-bold text-slate-800 text-lg">{scope.phone || 'Não encontrado'}</p>
               </div>
             </div>
@@ -76,11 +90,11 @@ const ScopeCard = ({ scope }) => {
                 <MessageCircle className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-slate-400">WhatsApp</p>
+                <p className="text-xs font-semibold text-slate-400">WhatsApp Oficial</p>
                 {scope.whatsapp ? (
-                  <a href={scope.whatsapp} target="_blank" rel="noreferrer" className="font-bold text-green-600 text-lg hover:underline decoration-2 underline-offset-4">Disponível no site</a>
+                  <a href={scope.whatsapp} target="_blank" rel="noreferrer" className="font-bold text-green-600 text-lg hover:underline decoration-2 underline-offset-4">Encontrado no site</a>
                 ) : (
-                  <p className="font-medium text-slate-500">Não encontrado no site</p>
+                  <p className="font-medium text-slate-500">Não possui WhatsApp no site</p>
                 )}
               </div>
             </div>
@@ -109,9 +123,13 @@ const ScopeCard = ({ scope }) => {
               <div>
                 <p className="text-xs font-semibold text-slate-400">Website Oficial</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <a href={`https://${scope.website}`} target="_blank" rel="noreferrer" className="font-bold text-apple-blue hover:underline decoration-2 underline-offset-4 text-lg">
-                    {scope.website || 'Sem site'}
-                  </a>
+                  {scope.website ? (
+                    <a href={`https://${scope.website}`} target="_blank" rel="noreferrer" className="font-bold text-apple-blue hover:underline decoration-2 underline-offset-4 text-lg">
+                      {scope.website}
+                    </a>
+                  ) : (
+                    <p className="font-bold text-red-500 text-lg">SEM SITE</p>
+                  )}
                   {scope.techStack && (
                     <span className={cn(
                       "text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm border",
@@ -123,51 +141,70 @@ const ScopeCard = ({ scope }) => {
                 </div>
               </div>
             </div>
-
-            <div className="pt-4">
-              <p className="text-xs font-semibold text-slate-400 mb-3">Outras Plataformas</p>
-              <div className="flex flex-wrap gap-2.5">
-                {scope.links?.yelp ? (
-                  <a href={scope.links.yelp} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-[#FF1A1A] hover:bg-slate-50 transition-colors text-sm font-bold">
-                    Yelp
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100/50 border border-slate-200/50 text-slate-400 text-sm font-medium">Sem Yelp</span>
-                )}
-                
-                {scope.links?.facebook ? (
-                  <a href={scope.links.facebook} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-[#1877F2] hover:bg-slate-50 transition-colors text-sm font-bold">
-                    Facebook
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100/50 border border-slate-200/50 text-slate-400 text-sm font-medium">Sem Facebook</span>
-                )}
-
-                {scope.links?.thumbtack ? (
-                  <a href={scope.links.thumbtack} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-emerald-600 hover:bg-slate-50 transition-colors text-sm font-bold">
-                    Thumbtack
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100/50 border border-slate-200/50 text-slate-400 text-sm font-medium">Sem Thumbtack</span>
-                )}
-              </div>
-            </div>
+            
+            {!scope.website && (
+               <div className="p-3 bg-red-50 border border-red-100 rounded-xl mt-4">
+                 <p className="text-xs text-red-600 font-medium">⚠️ Esta empresa existe no Google Maps, mas não tem um site conectado. O cliente clica e não tem para onde ir.</p>
+               </div>
+            )}
           </div>
         </div>
       </div>
       
-      {/* Diagnóstico Automático */}
-      <div className="p-6 bg-apple-blue/5 border-t border-apple-blue/10">
-        <h3 className="text-xs font-bold text-apple-blue uppercase tracking-widest mb-2 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4" /> Diagnóstico & Abordagem
+      {/* Diagnóstico Automático Baseado no Playbook */}
+      <div className="p-6 bg-slate-50 border-t border-slate-100">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" /> Inteligência de Abordagem (Playbook)
         </h3>
-        <p className="text-sm text-slate-700 font-medium leading-relaxed">
-          {needsBetterSite && isBadRating && "Empresa com forte vulnerabilidade. O site é amador (Wix ou inexistente) e a nota está baixa. A abordagem deve focar em como a presença digital atual afasta clientes e como uma reestruturação pode reverter a imagem da empresa."}
-          {needsBetterSite && !isBadRating && "A empresa presta um bom serviço (boa nota), mas peca na estrutura do site (Wix ou inexistente). A abordagem ideal é: 'Vocês têm um serviço excelente, mas o site atual não reflete essa qualidade e está limitando o crescimento'."}
-          {!needsBetterSite && isBadRating && "A empresa tem uma estrutura digital ok, mas a reputação está manchada. O foco da abordagem deve ser em gestão de reputação, captação de novas avaliações positivas e recuperação de clientes."}
-          {!needsBetterSite && !isBadRating && !scope.whatsapp && "A empresa está bem posicionada, mas falta um canal de conversão rápida (WhatsApp). A abordagem pode focar em otimização de conversão: 'Vocês têm tráfego e boa nota, mas estão perdendo orçamentos por não ter um atendimento via WhatsApp no site'."}
-          {!needsBetterSite && !isBadRating && scope.whatsapp && "Empresa já bem estruturada digitalmente. A abordagem deve ser mais consultiva: analisar o que os concorrentes não estão fazendo ou oferecer otimização de campanhas para escalar ainda mais."}
-        </p>
+        <div className="space-y-3">
+          {noWebsite && (
+            <div className="p-4 bg-white border border-red-100 rounded-2xl shadow-sm">
+              <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                <span className="font-bold text-red-600">🚨 ALVO FÁCIL: Empresa Incompleta.</span> Eles têm ficha no Google Maps, mas **não possuem site**. O cliente americano pesquisa o serviço, os acha no mapa, mas desiste de ligar porque não há um site para passar credibilidade. 
+                <br/><br/>
+                **O que falar:** "Oi! Achei vocês no Google Maps pesquisando [Nicho] em [Cidade]. Vi que vocês têm a ficha, mas estão sem site oficial conectado. O americano que busca no Maps acaba indo pro concorrente porque não acha a tabela de vocês. Posso mostrar como a gente resolve isso?"
+              </p>
+            </div>
+          )}
+
+          {!noWebsite && noWhatsapp && (
+            <div className="p-4 bg-white border border-amber-100 rounded-2xl shadow-sm">
+              <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                <span className="font-bold text-amber-600">🟡 Cenário 9 — Sem Número Visível:</span> Eles têm um site ({scope.website}), mas o cliente não tem um botão fácil de WhatsApp para clicar. Dependem de formulários lentos.
+                <br/><br/>
+                **O que falar:** "Oi! Entrei no site de vocês, tá bacana! Mas fiquei com uma dúvida: como o cliente americano chama vocês hoje? Tem que preencher aquele formulário? Porque o americano que tem pressa desiste no meio. A gente instala uma automação que joga o cliente do site direto pro WhatsApp de vocês. Quer ver como funciona?"
+              </p>
+            </div>
+          )}
+
+          {!noWebsite && scope.techStack === 'Wix' && (
+            <div className="p-4 bg-white border border-amber-100 rounded-2xl shadow-sm">
+              <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                <span className="font-bold text-amber-600">🟡 Cenário 6 — Site Amador (Wix):</span> O site deles foi feito em Wix. Costuma ser lento e passar imagem de empresa amadora para o cliente high-ticket.
+                <br/><br/>
+                **O que falar:** "Seu site atual tá funcionando ou tá mais como um cartão de visita parado pagando mensalidade? Tem umas estruturas modernas que carregam mais rápido e convertem melhor."
+              </p>
+            </div>
+          )}
+
+          {isBadRating && (
+            <div className="p-4 bg-white border border-red-100 rounded-2xl shadow-sm">
+              <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                <span className="font-bold text-red-600">📉 Alerta de Reputação:</span> A nota no Google é {scope.rating}. O americano confia em avaliações. Use isso: "Vi que vocês prestam um bom serviço, mas a nota no Google não reflete isso. A gente pode montar uma automação para pedir avaliação 5 estrelas pros seus melhores clientes e subir essa nota rápido."
+              </p>
+            </div>
+          )}
+
+          {!noWebsite && !noWhatsapp && !isBadRating && (
+            <div className="p-4 bg-white border border-emerald-100 rounded-2xl shadow-sm">
+              <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                <span className="font-bold text-emerald-600">🟢 Cenário 7 — Estruturado sem Conversão:</span> A empresa tem site, WhatsApp e boa nota. Eles já entendem de marketing.
+                <br/><br/>
+                **O que falar:** "Vocês estão muito bem posicionados! A pergunta é: dos 10 americanos que entram no site, quantos fecham? Se for pouco, tem algo travando no processo. A gente faz uma consultoria focada só na otimização dessa conversão."
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

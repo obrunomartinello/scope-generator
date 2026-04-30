@@ -46,53 +46,56 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   
   const { query, location } = req.body;
-  let businessesToScan = [];
-
+  
   try {
-    // 1. Get List of Businesses
-    if (yelpApiKey) {
-      // YELP API PATH (Bulk)
-      const { data } = await axios.get(`https://api.yelp.com/v3/businesses/search?term=${encodeURIComponent(query)}&location=${encodeURIComponent(location || 'Orlando, FL')}&limit=3`, {
-        headers: { Authorization: `Bearer ${yelpApiKey}` }
-      });
-      businessesToScan = data.businesses.map(b => ({
-        name: b.name,
-        address: b.location?.address1 || location,
-        rating: b.rating,
-        reviews: b.review_count,
-        phone: b.display_phone,
-        yelpLink: b.url,
-        searchQuery: `${b.name} ${b.location?.address1 || ''} official website`
-      }));
+    const googleApiKey = process.env.VITE_GOOGLE_PLACES_API_KEY;
+    let businessesToScan = [];
+
+    if (googleApiKey) {
+      const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' in ' + location)}&key=${googleApiKey}`;
+      const searchRes = await axios.get(searchUrl);
+      const places = searchRes.data.results.slice(0, 10);
+      
+      for (const place of places) {
+        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number&key=${googleApiKey}`;
+        const detailsRes = await axios.get(detailsUrl);
+        const details = detailsRes.data.result || {};
+
+        businessesToScan.push({
+          placeId: place.place_id,
+          name: place.name,
+          address: place.formatted_address || location,
+          rating: place.rating || 0,
+          reviews: place.user_ratings_total || 0,
+          phone: details.formatted_phone_number || null,
+          website: details.website || null
+        });
+      }
     } else {
-      // MOCK PATH (To demonstrate bulk search without Yelp Key)
       businessesToScan = [
-        { name: `${query} Pro`, address: location || 'Miami, FL', rating: 4.8, reviews: 112, phone: '+1 (305) 555-0101', yelpLink: 'https://yelp.com', searchQuery: `${query} Pro Miami` },
-        { name: `Affordable ${query}`, address: location || 'Miami, FL', rating: 3.5, reviews: 14, phone: '+1 (305) 555-0102', yelpLink: 'https://yelp.com', searchQuery: `Affordable ${query} Miami` },
-        { name: `Elite ${query} Services`, address: location || 'Miami, FL', rating: 4.2, reviews: 45, phone: '+1 (305) 555-0103', yelpLink: 'https://yelp.com', searchQuery: `Elite ${query} Services Miami` }
+        { name: `${query} Experts`, address: location, rating: 4.8, reviews: 112, phone: '+1 (305) 555-0101', website: `https://www.${query.replace(/\s+/g, '').toLowerCase()}experts.com` },
+        { name: `Affordable ${query}`, address: location, rating: 3.5, reviews: 14, phone: null, website: null },
+        { name: `Elite ${query} Services`, address: location, rating: 4.2, reviews: 45, phone: '+1 (305) 555-0103', website: `https://elite${query.replace(/\s+/g, '').toLowerCase()}.wixsite.com/home` }
       ];
     }
 
-    // 2. Scan each business
     const finalScopes = [];
+    
     for (const b of businessesToScan) {
-      const links = await searchWeb(b.searchQuery);
-      let mainWebsite = null;
-      const socialLinks = { yelp: b.yelpLink, facebook: null, thumbtack: null };
+      let websiteData = { email: null, whatsapp: null, phone: null, techStack: null };
       
-      for (const link of links) {
-        if (link.includes('facebook.com/')) socialLinks.facebook = link;
-        else if (link.includes('thumbtack.com/')) socialLinks.thumbtack = link;
-        else if (!mainWebsite && !link.includes('google.com') && !link.includes('duckduckgo.com') && !link.includes('yelp.com')) {
-          mainWebsite = link;
-        }
+      if (b.website) {
+        websiteData = await scanWebsite(b.website);
       }
 
-      let websiteData = {};
-      if (mainWebsite) websiteData = await scanWebsite(mainWebsite);
+      let hotScore = 0;
+      if (!b.website) hotScore += 50;
+      if (!websiteData.whatsapp) hotScore += 30;
+      if (b.rating < 4.0 || b.reviews < 5) hotScore += 20;
+      if (websiteData.techStack === 'Wix') hotScore += 15;
 
       const scope = {
-        id: Date.now() + Math.random(),
+        id: b.placeId || (Date.now() + Math.random()),
         name: b.name,
         address: b.address,
         rating: b.rating,
@@ -100,9 +103,10 @@ export default async function handler(req, res) {
         phone: b.phone || websiteData.phone || null,
         email: websiteData.email || null,
         whatsapp: websiteData.whatsapp || null,
-        website: mainWebsite ? mainWebsite.replace(/^https?:\/\//, '').split('/')[0] : null,
+        website: b.website ? b.website.replace(/^https?:\/\//, '').split('/')[0] : null,
         techStack: websiteData.techStack || null,
-        links: socialLinks
+        hotScore: hotScore,
+        links: { yelp: null, facebook: null, thumbtack: null }
       };
       
       finalScopes.push(scope);
@@ -114,7 +118,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // Return array of results
+    finalScopes.sort((a, b) => b.hotScore - a.hotScore);
+
     res.status(200).json(finalScopes);
   } catch (error) {
     res.status(500).json({ error: "Erro ao gerar escopo" });

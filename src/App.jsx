@@ -74,7 +74,8 @@ function App() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Buscando...
+                  <span className="hidden sm:inline">Analisando Leads (pode levar 20s)...</span>
+                  <span className="sm:hidden">Analisando...</span>
                 </>
               ) : (
                 'Gerar Dossiê'
