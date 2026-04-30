@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Gauge, ShieldAlert } from 'lucide-react';
 import ScopeCard from './components/ScopeCard';
 import HistorySidebar from './components/HistorySidebar';
