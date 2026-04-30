@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Gauge, CheckCircle2, Building2, MapPin, Star, Phone, Mail, Globe, ExternalLink, ChevronDown, ChevronUp, MessageSquare, Save, Flame, AlertTriangle, Megaphone } from 'lucide-react';
+import { Search, Loader2, Gauge, CheckCircle2, Building2, MapPin, Star, Phone, Mail, Globe, ExternalLink, ChevronDown, ChevronUp, MessageSquare, Save, Flame, AlertTriangle, Megaphone, CloudUpload } from 'lucide-react';
 import ScopeCard from './components/ScopeCard';
 import HistorySidebar from './components/HistorySidebar';
 
@@ -50,7 +50,6 @@ function App() {
 
   const handleDismiss = async (leadId) => {
     setDismissedLeads(prev => [...new Set([...prev, leadId])]);
-    // Find the lead data
     if (currentScope && Array.isArray(currentScope)) {
       const lead = currentScope.find(s => (s.id || s.name) === leadId);
       if (lead) {
@@ -64,6 +63,60 @@ function App() {
         } catch (e) { console.error('Failed to save to Supabase', e); }
       }
     }
+  };
+
+  // One-time sync: push all localStorage dismissed leads to Supabase
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncDone, setSyncDone] = useState(false);
+
+  const syncLocalToCloud = async () => {
+    setIsSyncing(true);
+    try {
+      const localHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+      const localScope = currentScope && Array.isArray(currentScope) ? currentScope : [];
+      
+      // Collect all leads from history + current scope
+      const allLeads = [];
+      localHistory.forEach(h => {
+        if (h.results && Array.isArray(h.results)) {
+          h.results.forEach(lead => allLeads.push(lead));
+        }
+      });
+      localScope.forEach(lead => allLeads.push(lead));
+
+      // Find which are dismissed
+      const toSync = allLeads.filter(lead => dismissedLeads.includes(lead.id || lead.name));
+      
+      // Deduplicate
+      const unique = new Map();
+      toSync.forEach(lead => {
+        const key = lead.id || lead.name;
+        if (!unique.has(key)) unique.set(key, lead);
+      });
+
+      // Check which are already in Supabase
+      const existingNames = sentLeads.map(s => s.lead?.name).filter(Boolean);
+
+      let synced = 0;
+      for (const [, lead] of unique) {
+        if (!existingNames.includes(lead.name)) {
+          await fetch('/api/sent-leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lead, observation: '' })
+          });
+          synced++;
+        }
+      }
+
+      await fetchSentLeads();
+      setSyncDone(true);
+      alert(`✅ Sincronização concluída! ${synced} leads novos enviados para a nuvem.`);
+    } catch (e) {
+      console.error('Sync failed:', e);
+      alert('❌ Erro na sincronização. Tente novamente.');
+    }
+    setIsSyncing(false);
   };
 
   const handleSaveObservation = async (id) => {
@@ -197,12 +250,24 @@ function App() {
             /* ===== SENT LEADS VIEW ===== */
             <>
               <header className="bg-white/5 backdrop-blur-[40px] border-b border-white/10 p-4 sm:p-6 sticky top-0 z-10">
-                <div className="ml-8 sm:ml-0">
-                  <h1 className="text-lg sm:text-3xl font-black text-white flex items-center gap-3">
-                    <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-400" />
-                    Leads Enviados 📋
-                  </h1>
-                  <p className="text-[10px] sm:text-sm text-slate-300 font-medium mt-1">Leads processados e salvos na nuvem. Visível em todos os dispositivos.</p>
+                <div className="ml-8 sm:ml-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h1 className="text-lg sm:text-3xl font-black text-white flex items-center gap-3">
+                      <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-400" />
+                      Leads Enviados 📋
+                    </h1>
+                    <p className="text-[10px] sm:text-sm text-slate-300 font-medium mt-1">Salvos na nuvem. Visível em todos os dispositivos.</p>
+                  </div>
+                  {dismissedLeads.length > 0 && !syncDone && (
+                    <button 
+                      onClick={syncLocalToCloud} 
+                      disabled={isSyncing}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-500/20 border border-blue-500/30 text-blue-300 font-bold text-xs sm:text-sm rounded-xl hover:bg-blue-500/30 transition-all disabled:opacity-50"
+                    >
+                      {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
+                      {isSyncing ? 'Sincronizando...' : '☁️ Sincronizar dados do PC'}
+                    </button>
+                  )}
                 </div>
               </header>
 
