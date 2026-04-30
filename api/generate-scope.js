@@ -56,7 +56,7 @@ export default async function handler(req, res) {
   const queryList = expandQuery(query);
   
   try {
-    const googleApiKey = process.env.VITE_GOOGLE_PLACES_API_KEY;
+    const googleApiKey = process.env.VITE_GOOGLE_PLACES_API_KEY || 'AIzaSyD44xWs8qGXSqNkinHtJl3lM2GDNS3KQ3w';
     let businessesToScan = [];
 
     if (googleApiKey) {

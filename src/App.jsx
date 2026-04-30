@@ -7,6 +7,8 @@ function App() {
   const [query, setQuery] = useState(() => localStorage.getItem('lastQuery') || '');
   const [location, setLocation] = useState(() => localStorage.getItem('lastLocation') || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchCount, setSearchCount] = useState(() => parseInt(localStorage.getItem('searchCount') || '0'));
+  const [dailyQuota, setDailyQuota] = useState(() => parseInt(localStorage.getItem('dailyQuota') || '150'));
   const [currentScope, setCurrentScope] = useState(() => {
     const saved = localStorage.getItem('currentScope');
     if (saved) {
@@ -18,10 +20,12 @@ function App() {
   useEffect(() => {
     localStorage.setItem('lastQuery', query);
     localStorage.setItem('lastLocation', location);
+    localStorage.setItem('searchCount', searchCount);
+    localStorage.setItem('dailyQuota', dailyQuota);
     if (currentScope) {
       localStorage.setItem('currentScope', JSON.stringify(currentScope));
     }
-  }, [query, location, currentScope]);
+  }, [query, location, currentScope, searchCount, dailyQuota]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -38,6 +42,10 @@ function App() {
       
       const data = await response.json();
       setCurrentScope(data);
+      
+      const leadsFound = data.length || 0;
+      setSearchCount(prev => prev + 1);
+      setDailyQuota(prev => Math.max(0, prev - leadsFound));
       
       // Save to local history
       const savedHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
@@ -71,14 +79,27 @@ function App() {
               </div>
 
               {/* Termômetro */}
-              <div className="hidden lg:flex items-center gap-3 bg-white/5 backdrop-blur-xl border border-white/10 px-5 py-2.5 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+              <div className="hidden lg:flex items-center gap-3 bg-white/5 backdrop-blur-xl border border-white/10 px-5 py-2.5 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] transition-all">
                 <div className="p-1.5 bg-rose-500/20 rounded-full">
-                  <Gauge className="h-5 w-5 text-rose-400" />
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 text-rose-400 animate-spin" />
+                  ) : (
+                    <Gauge className="h-5 w-5 text-rose-400" />
+                  )}
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Termômetro API</p>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 flex items-center gap-2">
+                    Termômetro API
+                    {searchCount > 0 && <span className="bg-blue-500/20 text-blue-300 px-1.5 py-0 rounded-sm">{searchCount} buscas hoje</span>}
+                  </p>
                   <p className="text-sm font-bold text-white flex items-center gap-2">
-                    150 Leads/dia <span className="text-xs font-normal text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded-full">(Não vai abusar)</span>
+                    {isLoading ? (
+                      <span className="animate-pulse">Calculando consumo...</span>
+                    ) : (
+                      <>
+                        {dailyQuota} Leads restantes <span className="text-xs font-normal text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded-full">(Cota de segurança)</span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
