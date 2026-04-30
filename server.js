@@ -89,67 +89,72 @@ async function scanWebsite(url) {
 
 app.post('/api/generate-scope', async (req, res) => {
   const { query, location } = req.body;
-  const searchQuery = `${query} ${location || ''}`.trim();
+  let businessesToScan = [];
 
   try {
-    console.log(`Buscando por: ${searchQuery}`);
-    
-    // 1. Search web to find links
-    const links = await searchWeb(searchQuery);
-    
-    // Categorize Links
-    let mainWebsite = null;
-    const socialLinks = { yelp: null, facebook: null, thumbtack: null };
-    
-    for (const link of links) {
-      if (link.includes('yelp.com/biz/')) socialLinks.yelp = link;
-      else if (link.includes('facebook.com/')) socialLinks.facebook = link;
-      else if (link.includes('thumbtack.com/')) socialLinks.thumbtack = link;
-      else if (!mainWebsite && !link.includes('google.com') && !link.includes('duckduckgo.com') && !link.includes('yelp.com') && !link.includes('facebook.com')) {
-        mainWebsite = link;
-      }
+    const yelpApiKey = process.env.YELP_API_KEY;
+    if (yelpApiKey) {
+      const { data } = await axios.get(`https://api.yelp.com/v3/businesses/search?term=${encodeURIComponent(query)}&location=${encodeURIComponent(location || 'Orlando, FL')}&limit=3`, {
+        headers: { Authorization: `Bearer ${yelpApiKey}` }
+      });
+      businessesToScan = data.businesses.map(b => ({
+        name: b.name,
+        address: b.location?.address1 || location,
+        rating: b.rating,
+        reviews: b.review_count,
+        phone: b.display_phone,
+        yelpLink: b.url,
+        searchQuery: `${b.name} ${b.location?.address1 || ''} official website`
+      }));
+    } else {
+      businessesToScan = [
+        { name: `${query} Pro`, address: location || 'Miami, FL', rating: 4.8, reviews: 112, phone: '+1 (305) 555-0101', yelpLink: 'https://yelp.com', searchQuery: `${query} Pro Miami` },
+        { name: `Affordable ${query}`, address: location || 'Miami, FL', rating: 3.5, reviews: 14, phone: '+1 (305) 555-0102', yelpLink: 'https://yelp.com', searchQuery: `Affordable ${query} Miami` },
+        { name: `Elite ${query} Services`, address: location || 'Miami, FL', rating: 4.2, reviews: 45, phone: '+1 (305) 555-0103', yelpLink: 'https://yelp.com', searchQuery: `Elite ${query} Services Miami` }
+      ];
     }
 
-    // 2. Scan the main website if found
-    let websiteData = {};
-    if (mainWebsite) {
-      websiteData = await scanWebsite(mainWebsite);
-    }
-
-    // Assemble final Scope Card
-    const scope = {
-      id: Date.now(),
-      name: query,
-      address: location || 'Desconhecido',
-      rating: 4.0, // Mocked rating since we aren't using Google Maps API
-      reviews: 'N/A',
-      phone: websiteData.phone || null,
-      email: websiteData.email || null,
-      whatsapp: websiteData.whatsapp || null,
-      website: mainWebsite ? mainWebsite.replace(/^https?:\/\//, '') : null,
-      techStack: websiteData.techStack || null,
-      links: socialLinks
-    };
-
-    // 3. Save to Supabase (if connected)
-    if (supabase) {
-      const { error } = await supabase.from('scopes').insert([
-        { 
-          company_name: scope.name, 
-          address: scope.address, 
-          website: scope.website,
-          email: scope.email,
-          whatsapp: scope.whatsapp,
-          raw_data: scope 
+    const finalScopes = [];
+    for (const b of businessesToScan) {
+      const links = await searchWeb(b.searchQuery);
+      let mainWebsite = null;
+      const socialLinks = { yelp: b.yelpLink, facebook: null, thumbtack: null };
+      
+      for (const link of links) {
+        if (link.includes('facebook.com/')) socialLinks.facebook = link;
+        else if (link.includes('thumbtack.com/')) socialLinks.thumbtack = link;
+        else if (!mainWebsite && !link.includes('google.com') && !link.includes('duckduckgo.com') && !link.includes('yelp.com')) {
+          mainWebsite = link;
         }
-      ]);
-      if (error && error.code !== '42P01') { // Ignore table not found error for now
-        console.error("Supabase insert error:", error);
+      }
+
+      let websiteData = {};
+      if (mainWebsite) websiteData = await scanWebsite(mainWebsite);
+
+      const scope = {
+        id: Date.now() + Math.random(),
+        name: b.name,
+        address: b.address,
+        rating: b.rating,
+        reviews: b.reviews,
+        phone: b.phone || websiteData.phone || null,
+        email: websiteData.email || null,
+        whatsapp: websiteData.whatsapp || null,
+        website: mainWebsite ? mainWebsite.replace(/^https?:\/\//, '').split('/')[0] : null,
+        techStack: websiteData.techStack || null,
+        links: socialLinks
+      };
+      
+      finalScopes.push(scope);
+      
+      if (supabase) {
+        await supabase.from('scopes').insert([
+          { company_name: scope.name, address: scope.address, website: scope.website, email: scope.email, whatsapp: scope.whatsapp, raw_data: scope }
+        ]);
       }
     }
 
-    res.json(scope);
-
+    res.json(finalScopes);
   } catch (error) {
     console.error("Internal Error:", error);
     res.status(500).json({ error: "Erro ao gerar escopo" });

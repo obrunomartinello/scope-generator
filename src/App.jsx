@@ -85,24 +85,31 @@ function App() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-4xl mx-auto">
-            {currentScope ? (
-              <div className="space-y-6">
+          <div className="max-w-5xl mx-auto">
+            {currentScope && Array.isArray(currentScope) ? (
+              <div className="space-y-8">
                 <div className="flex justify-between items-end px-2">
-                  <h2 className="text-lg font-semibold text-slate-700">Resultado da Análise</h2>
+                  <h2 className="text-lg font-semibold text-slate-700">
+                    Encontramos {currentScope.length} empresas
+                  </h2>
                   <span className="text-xs text-slate-500 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-slate-100 font-medium">
-                    Gerado em {new Date().toLocaleTimeString()}
+                    Busca em Lote concluída
                   </span>
                 </div>
-                <ScopeCard scope={currentScope} />
+                
+                <div className="space-y-12">
+                  {currentScope.map((scope, idx) => (
+                    <ScopeCard key={idx} scope={scope} />
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20 text-slate-400">
                 <div className="w-20 h-20 rounded-3xl bg-white/50 backdrop-blur-xl border border-white/60 shadow-sm flex items-center justify-center mb-4">
                   <Search className="h-10 w-10 text-slate-300" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-600">Pronto para prospectar</h3>
-                <p className="max-w-sm text-sm font-medium">Digite o nome da empresa acima para gerar um dossiê completo com visual limpo e minimalista.</p>
+                <h3 className="text-xl font-semibold text-slate-600">Busca em Massa Habilitada</h3>
+                <p className="max-w-md text-sm font-medium">Digite um nicho (ex: Cleaning) e uma cidade. O robô vai buscar várias empresas de uma vez e diagnosticar todas para você encontrar o melhor lead.</p>
               </div>
             )}
           </div>
