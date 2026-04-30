@@ -105,8 +105,10 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex text-slate-100 bg-[#0f172a] bg-[url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=2000')] bg-cover bg-center bg-fixed">
-      <div className="absolute inset-0 bg-slate-950/60 pointer-events-none"></div>
+    <div className="min-h-screen flex text-slate-100 bg-[#0f172a] relative">
+      {/* Background Image - uses fixed positioning instead of bg-fixed for mobile compatibility */}
+      <div className="fixed inset-0 bg-[url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=2000')] bg-cover bg-center z-0"></div>
+      <div className="fixed inset-0 bg-slate-950/60 z-0"></div>
 
       <div className="relative z-10 flex w-full">
         <HistorySidebar 
