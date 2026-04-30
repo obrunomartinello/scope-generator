@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { History, LayoutDashboard, Settings, User, ClipboardList, Menu, X } from 'lucide-react';
+import { History, LayoutDashboard, User, ClipboardList, Menu, X } from 'lucide-react';
 
 const HistorySidebar = ({ onSelectHistory, onViewSent, currentView }) => {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [sentCount, setSentCount] = useState(0);
 
   useEffect(() => {
     const fetchHistory = () => {
@@ -22,9 +23,19 @@ const HistorySidebar = ({ onSelectHistory, onViewSent, currentView }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const sentCount = (() => {
-    try { return JSON.parse(localStorage.getItem('dismissedLeads') || '[]').length; } catch { return 0; }
-  })();
+  // Fetch sent count from Supabase
+  useEffect(() => {
+    const fetchSentCount = async () => {
+      try {
+        const res = await fetch('/api/sent-leads');
+        const data = await res.json();
+        if (Array.isArray(data)) setSentCount(data.length);
+      } catch {}
+    };
+    fetchSentCount();
+    const interval = setInterval(fetchSentCount, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const sidebarContent = (
     <>
@@ -34,8 +45,8 @@ const HistorySidebar = ({ onSelectHistory, onViewSent, currentView }) => {
             <User className="text-white h-4 w-4 sm:h-5 sm:w-5" />
           </div>
           <div>
-            <h3 className="font-bold text-white tracking-tight drop-shadow-sm text-sm sm:text-base">Anti-Agência Prospect</h3>
-            <p className="text-[10px] sm:text-xs text-blue-300 font-medium">Buscadora Nível 1</p>
+            <h3 className="font-bold text-white tracking-tight drop-shadow-sm text-sm sm:text-base">Anti-Agência</h3>
+            <p className="text-[10px] sm:text-xs text-blue-300 font-medium">Prospect</p>
           </div>
         </div>
       </div>
@@ -104,24 +115,17 @@ const HistorySidebar = ({ onSelectHistory, onViewSent, currentView }) => {
           ))
         )}
       </nav>
-      
-      <div className="p-3 sm:p-4 border-t border-white/10 bg-black/20">
-        <button className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-white/5 text-slate-400 font-medium rounded-xl border border-white/5 transition-all text-xs sm:text-sm hover:bg-white/10 hover:text-white group">
-          <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          Configurações
-        </button>
-      </div>
     </>
   );
 
   return (
     <>
-      {/* Mobile Hamburger */}
+      {/* Mobile Hamburger - fixed position that doesn't overlap */}
       <button 
         onClick={() => setIsMobileOpen(true)} 
-        className="fixed top-4 left-4 z-50 sm:hidden p-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white shadow-lg"
+        className="fixed top-3 left-3 z-50 sm:hidden p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg text-white shadow-lg"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-4 w-4" />
       </button>
 
       {/* Mobile Overlay */}
