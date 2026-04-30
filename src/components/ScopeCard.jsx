@@ -23,27 +23,44 @@ const ScopeCard = ({ scope, onDismiss, isDismissed }) => {
   const isWarmLead = scope.hotScore >= 20 && scope.hotScore < 50;
   const isColdLead = scope.hotScore < 20;
 
-  const handleSendToSheet = () => {
-    // Build a tab-separated string perfect for pasting into Google Sheets
+  const GOOGLE_DOC_URL = 'https://docs.google.com/document/d/12HtD8-KwDxqG369PTOTcp1eaBWIInGzZIxLTwcOo-vs/edit';
+
+  const handleSendToDoc = () => {
+    // Build text matching the exact Google Doc column structure:
+    // Local | Ramo | Empresa | Dono(a) | Presença Digital | Contatos | Avaliação
+    const presencaDigital = [
+      scope.website ? `https://${scope.website}` : null,
+      scope.whatsapp || null,
+    ].filter(Boolean).join('\n');
+
+    const contatos = [
+      scope.phone || null,
+      scope.email || null,
+    ].filter(Boolean).join('\n');
+
+    const diagnostico = isHotLead 
+      ? `👻 Fantasma (Score: ${scope.hotScore}). Sem site ou presença fraca.`
+      : isWarmLead 
+        ? `🩹 Sobrevivendo (Score: ${scope.hotScore}). ${scope.techStack === 'Wix' ? 'Site Wix amador.' : 'Sem WhatsApp no site.'}`
+        : `😎 Estruturado (Score: ${scope.hotScore}). Possível cliente para tráfego pago/consultoria.`;
+
     const row = [
-      scope.name,
-      scope.address,
-      scope.phone || '',
-      scope.email || '',
-      scope.website || 'SEM SITE',
-      scope.whatsapp ? 'SIM' : 'NÃO',
-      scope.techStack || '-',
-      scope.rating,
-      scope.reviews,
-      scope.hotScore,
-      isHotLead ? 'Fantasma' : isWarmLead ? 'Sobrevivendo' : 'Estruturado',
+      scope.address,           // Local
+      '',                      // Ramo (user fills in)
+      scope.name,              // Empresa
+      '',                      // Dono(a) (user fills in)
+      presencaDigital,         // Presença Digital
+      contatos,                // Contatos
+      `⭐ ${scope.rating} (${scope.reviews} avaliações)\n${diagnostico}`,  // Avaliação
     ].join('\t');
 
     navigator.clipboard.writeText(row).then(() => {
       setJustCopied(true);
-      setTimeout(() => setJustCopied(false), 2000);
-      // Mark as dismissed
+      setTimeout(() => setJustCopied(false), 3000);
+      // Mark as sent
       if (onDismiss) onDismiss(scope.id || scope.name);
+      // Open the Google Doc
+      window.open(GOOGLE_DOC_URL, '_blank');
     });
   };
 
@@ -57,8 +74,9 @@ const ScopeCard = ({ scope, onDismiss, isDismissed }) => {
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-[32px]">
           <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-2xl px-6 py-4 text-center backdrop-blur-xl">
             <CheckCircle2 className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
-            <p className="text-emerald-300 font-black text-lg">Enviado pra Planilha ✅</p>
+            <p className="text-emerald-300 font-black text-lg">Enviado pro Docs ✅</p>
             <p className="text-slate-400 text-xs mt-1">Este lead já foi processado</p>
+            <a href="https://docs.google.com/document/d/12HtD8-KwDxqG369PTOTcp1eaBWIInGzZIxLTwcOo-vs/edit" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-blue-300 text-xs font-bold hover:text-blue-200 transition-colors"><ExternalLink className="h-3 w-3" /> Abrir no Google Docs</a>
           </div>
         </div>
       )}
@@ -122,10 +140,10 @@ const ScopeCard = ({ scope, onDismiss, isDismissed }) => {
             Score de Dor: {scope.hotScore} pts
           </span>
 
-          {/* BOTÃO ENVIAR PRA PLANILHA */}
+          {/* BOTÃO ENVIAR PRO DOCS */}
           {!isDismissed && (
             <button
-              onClick={handleSendToSheet}
+              onClick={handleSendToDoc}
               className={cn(
                 "mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all",
                 justCopied 
@@ -134,9 +152,9 @@ const ScopeCard = ({ scope, onDismiss, isDismissed }) => {
               )}
             >
               {justCopied ? (
-                <><CheckCircle2 className="h-4 w-4" /> Copiado! Cola na planilha</>
+                <><CheckCircle2 className="h-4 w-4" /> Copiado! Cola no Docs ✅</>
               ) : (
-                <><Send className="h-4 w-4" /> Enviar pra Planilha 📋</>
+                <><Send className="h-4 w-4" /> Enviar pro Docs 📋</>
               )}
             </button>
           )}
