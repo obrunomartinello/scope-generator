@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-apple-blue: #007AFF;
+  --color-apple-blue-hover: #005bb5;
+  --color-glass-bg: rgba(255, 255, 255, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.4);
+  --color-glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased font-sans;
+    background-image: radial-gradient(circle at top left, #e0f2fe 0%, transparent 40%),
+                      radial-gradient(circle at bottom right, #f3e8ff 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+}
